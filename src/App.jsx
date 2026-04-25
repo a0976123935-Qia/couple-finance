@@ -45,6 +45,8 @@ export default function App() {
   const [showForm, setShowForm] = useState(false);
   const [showAF,   setShowAF]   = useState(false);
   const [showLF,   setShowLF]   = useState(false);
+  const [editAId,  setEditAId]  = useState(null);
+  const [editLId,  setEditLId]  = useState(null);
   const [editId,   setEditId]   = useState(null);
   const [form,     setForm]     = useState({ type:"expense", person:1, date:today(), category:"飲食", amount:"", note:"" });
   const [aForm,    setAForm]    = useState({ person:1, name:"", category:"銀行存款", amount:"" });
@@ -159,8 +161,18 @@ export default function App() {
   }
   const startEdit=tx=>{setForm({...tx});setEditId(tx.id);setShowForm(true);};
   const delTx   =id=>setData(d=>({...d,transactions:d.transactions.filter(t=>t.id!==id)}));
-  function submitAsset(){if(!aForm.amount||isNaN(aForm.amount))return;setData(d=>({...d,assets:[...d.assets,{...aForm,id:Date.now()}]}));setAForm({person:1,name:"",category:"銀行存款",amount:""});setShowAF(false);}
-  function submitLiab(){if(!lForm.amount||isNaN(lForm.amount))return;setData(d=>({...d,liabilities:[...d.liabilities,{...lForm,id:Date.now()}]}));setLForm({person:1,name:"",category:"信用卡",amount:""});setShowLF(false);}
+  function submitAsset(){
+    if(!aForm.amount||isNaN(aForm.amount))return;
+    if(editAId!==null){setData(d=>({...d,assets:d.assets.map(a=>a.id===editAId?{...aForm,id:editAId}:a)}));setEditAId(null);}
+    else setData(d=>({...d,assets:[...d.assets,{...aForm,id:Date.now()}]}));
+    setAForm({person:1,name:"",category:"銀行存款",amount:""});setShowAF(false);
+  }
+  function submitLiab(){
+    if(!lForm.amount||isNaN(lForm.amount))return;
+    if(editLId!==null){setData(d=>({...d,liabilities:d.liabilities.map(a=>a.id===editLId?{...lForm,id:editLId}:a)}));setEditLId(null);}
+    else setData(d=>({...d,liabilities:[...d.liabilities,{...lForm,id:Date.now()}]}));
+    setLForm({person:1,name:"",category:"信用卡",amount:""});setShowLF(false);
+  }
   const delAsset=id=>setData(d=>({...d,assets:d.assets.filter(a=>a.id!==id)}));
   const delLiab =id=>setData(d=>({...d,liabilities:d.liabilities.filter(a=>a.id!==id)}));
   const pLabel  =p=>p===1?"👨 他":"👩 她";
@@ -353,7 +365,8 @@ export default function App() {
                 <div key={a.id} style={{display:"flex",alignItems:"center",borderBottom:"1px solid var(--border)",padding:"10px 0"}}>
                   <div style={{flex:1}}><div style={{fontSize:14,fontWeight:600}}>{a.name||a.category}</div><div style={{fontSize:12,color:"var(--sub)"}}><span className="tag" style={{marginRight:6}}>{a.category}</span>{pLabel(a.person)}</div></div>
                   <div className="inc" style={{fontSize:14}}>${fmt(a.amount)}</div>
-                  <button className="xbtn" style={{marginLeft:8}} onClick={()=>delAsset(a.id)}>✕</button>
+                  <button className="ebtn" style={{marginLeft:8}} onClick={()=>{setAForm({...a});setEditAId(a.id);setShowAF(true);}}>✏️</button>
+                  <button className="xbtn" onClick={()=>delAsset(a.id)}>✕</button>
                 </div>
               ))}
               {fAssets.length>0&&<div style={{display:"flex",justifyContent:"flex-end",marginTop:10,fontWeight:700,color:"var(--green)"}}>合計: ${fmt(totA)}</div>}
@@ -368,7 +381,8 @@ export default function App() {
                 <div key={a.id} style={{display:"flex",alignItems:"center",borderBottom:"1px solid var(--border)",padding:"10px 0"}}>
                   <div style={{flex:1}}><div style={{fontSize:14,fontWeight:600}}>{a.name||a.category}</div><div style={{fontSize:12,color:"var(--sub)"}}><span className="tag" style={{marginRight:6}}>{a.category}</span>{pLabel(a.person)}</div></div>
                   <div className="exp" style={{fontSize:14}}>-${fmt(a.amount)}</div>
-                  <button className="xbtn" style={{marginLeft:8}} onClick={()=>delLiab(a.id)}>✕</button>
+                  <button className="ebtn" style={{marginLeft:8}} onClick={()=>{setLForm({...a});setEditLId(a.id);setShowLF(true);}}>✏️</button>
+                  <button className="xbtn" onClick={()=>delLiab(a.id)}>✕</button>
                 </div>
               ))}
               {fLiabs.length>0&&<div style={{display:"flex",justifyContent:"flex-end",marginTop:10,fontWeight:700,color:"var(--red)"}}>合計: ${fmt(totL)}</div>}
@@ -410,12 +424,12 @@ export default function App() {
         <div className="overlay" onClick={()=>setShowAF(false)}>
           <div className="modal" onClick={e=>e.stopPropagation()}>
             <div style={{width:40,height:4,background:"#eee",borderRadius:2,margin:"0 auto 20px"}}/>
-            <div style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:20,marginBottom:20,color:"var(--rose)"}}>新增資產 💰</div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:20,marginBottom:20,color:"var(--rose)"}}>{editAId?"編輯資產 ✏️":"新增資產 💰"}</div>
             <div className="seg">{[[1,"👨 他"],[2,"👩 她"]].map(([v,l])=><button key={v} className={`sb${aForm.person===v?" sp":""}`} onClick={()=>setAForm(f=>({...f,person:v}))}>{l}</button>)}</div>
             <div style={{marginBottom:10}}><select className="inp" value={aForm.category} onChange={e=>setAForm(f=>({...f,category:e.target.value}))}>{ASSET_TYPES.map(c=><option key={c}>{c}</option>)}</select></div>
             <div style={{marginBottom:10}}><input className="inp" placeholder="名稱（如：台新帳戶）" value={aForm.name} onChange={e=>setAForm(f=>({...f,name:e.target.value}))}/></div>
             <div style={{marginBottom:20}}><input className="inp" type="number" placeholder="金額（元）" value={aForm.amount} onChange={e=>setAForm(f=>({...f,amount:e.target.value}))}/></div>
-            <div className="seg"><button className="btnG" onClick={()=>setShowAF(false)}>取消</button><button className="btnP" onClick={submitAsset}>新增</button></div>
+            <div className="seg"><button className="btnG" onClick={()=>{setShowAF(false);setEditAId(null);}}>取消</button><button className="btnP" onClick={submitAsset}>{editAId?"儲存":"新增"}</button></div>
           </div>
         </div>
       )}
@@ -425,12 +439,12 @@ export default function App() {
         <div className="overlay" onClick={()=>setShowLF(false)}>
           <div className="modal" onClick={e=>e.stopPropagation()}>
             <div style={{width:40,height:4,background:"#eee",borderRadius:2,margin:"0 auto 20px"}}/>
-            <div style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:20,marginBottom:20,color:"var(--rose)"}}>新增負債 📋</div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:20,marginBottom:20,color:"var(--rose)"}}>{editLId?"編輯負債 ✏️":"新增負債 📋"}</div>
             <div className="seg">{[[1,"👨 他"],[2,"👩 她"]].map(([v,l])=><button key={v} className={`sb${lForm.person===v?" sp":""}`} onClick={()=>setLForm(f=>({...f,person:v}))}>{l}</button>)}</div>
             <div style={{marginBottom:10}}><select className="inp" value={lForm.category} onChange={e=>setLForm(f=>({...f,category:e.target.value}))}>{LIAB_TYPES.map(c=><option key={c}>{c}</option>)}</select></div>
             <div style={{marginBottom:10}}><input className="inp" placeholder="名稱（如：房貸）" value={lForm.name} onChange={e=>setLForm(f=>({...f,name:e.target.value}))}/></div>
             <div style={{marginBottom:20}}><input className="inp" type="number" placeholder="金額（元）" value={lForm.amount} onChange={e=>setLForm(f=>({...f,amount:e.target.value}))}/></div>
-            <div className="seg"><button className="btnG" onClick={()=>setShowLF(false)}>取消</button><button className="btnP" onClick={submitLiab}>新增</button></div>
+            <div className="seg"><button className="btnG" onClick={()=>{setShowLF(false);setEditLId(null);}}>取消</button><button className="btnP" onClick={submitLiab}>{editLId?"儲存":"新增"}</button></div>
           </div>
         </div>
       )}
